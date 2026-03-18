@@ -5,12 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using MiniTestFramework.Assertions;
 using MiniTestFramework.Attributes;
+using MiniTestFramework.Attributes.ClassAttributes;
+using MiniTestFramework.Attributes.MethodAttributes;
 
 
 namespace StudentManagementLibrary.Tests
 {
-    [TestClass("Тестирование управления студентами")]
-    [SharedContext]
+    [TestClassifierClass(Name = "Student repository", IsShared = true)]
     public class StudentRepositoryTests
     {
         private StudentRepository? _repository;
@@ -31,69 +32,82 @@ namespace StudentManagementLibrary.Tests
             _student = null;
         }
 
-        [TestMethod(priority: 1)]
+        [TestClassifierMethod(priority: 1, name:"Student is added", timeout:1000)]
         public void AddStudent_IncreasesCount()
         {
+            Thread.Sleep(1100);
             _repository?.AddStudent(new Student("Петров Петр", 22));
             Assert.AreEqual(2, _repository?.Students.Count);
         }
 
-        [TestMethod]
+        [TestClassifierMethod(priority: 1, name: "Student is removed", timeout: 1000)]
+        
         public void RemoveStudent_Removes()
         {
+            Thread.Sleep(500);
             _repository?.RemoveStudent(_student?.Id);
             Assert.AreEqual(0, _repository?.Students.Count);
         }
 
-        [TestMethod]
+        [TestClassifierMethod(priority: 1, name: "Student to remove not found", timeout: 1000)]
         public void RemoveStudent_NotFound_Throws()
         {
+            Thread.Sleep(500);
             Assert.Throws<InvalidOperationException>(() =>
                 _repository?.RemoveStudent(Guid.NewGuid()));
         }
 
-        [TestMethod]
-        public void FindStudent_ReturnsStudent()
+        [TestClassifierMethod(priority: 1, name: "Student is found", timeout: 1000)]
+        [TestDataMethod("Иванов Иван")]
+        public void FindStudent_ReturnsStudent(String name)
         {
-            object? found = _repository?.FindByName("Иванов Иван");
+            Thread.Sleep(500);
+            object? found = _repository?.FindByName(name);
             Assert.IsNotNull(found);
         }
 
-        [TestMethod]
-        public void UpdateGrade_Works()
+        [TestClassifierMethod(priority: 1, name: "Student grade is updated", timeout: 1000)]
+        [TestDataMethod(9)]
+        public void UpdateGrade_Works(int grade)
         {
-            _student?.UpdateAverageGrade(9);
+            Thread.Sleep(500);
+            _student?.UpdateAverageGrade(grade);
        
-            Assert.Greater(_student?.AverageGrade, 8);
-            Assert.Less(_student?.AverageGrade, 10);
+            Assert.Greater(_student?.AverageGrade, grade - 1);
+            Assert.Less(_student?.AverageGrade, grade + 1);
         }
 
-        [TestMethod]
-        public void UpdateGrade_Invalid_Throws()
+        [TestClassifierMethod(priority: 1, name: "Student grade is invalid", description: "Grade could be in range", timeout: 1000)]
+        [TestDataMethod(20)]
+        public void UpdateGrade_Invalid_Throws(int invalidGrade)
         {
+            Thread.Sleep(500);
             Assert.Throws<ArgumentException>(() =>
-                _student?.UpdateAverageGrade(20));
+                _student?.UpdateAverageGrade(invalidGrade));
         }
 
-        [TestMethod]
+        [TestClassifierMethod(priority: 0, name: "Student count get", timeout: 100)]
         public async Task GetStudentsCountAsync_Works()
         {
+            Thread.Sleep(500);
             int count = await (_repository?.GetStudentsCountAsync() ?? Task.FromResult(0));
             Assert.AreEqual(1, count);
         }
 
-        [TestMethod]
+        [TestClassifierMethod(priority: 2, name: "Student age is invalid", timeout: 200)]
         public void Student_InvalidAge_Throws()
         {
             Assert.Throws<ArgumentException>(() =>
                 new Student("Test", 10));
         }
 
-        [TestMethod]
-        public void Student_EmptyName_Throws()
+        [TestClassifierMethod(priority: 2, name: "Student empty name is cancelled", timeout: 500)]
+        [TestDataMethod("")]
+        public void Student_EmptyName_Throws(string name)
         {
+            Thread.Sleep(500);
             Assert.Throws<ArgumentException>(() =>
-                new Student("", 18));
+                new Student(name, 18));
         }
     }
 }
