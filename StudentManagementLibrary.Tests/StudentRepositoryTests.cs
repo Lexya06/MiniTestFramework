@@ -11,7 +11,7 @@ using MiniTestFramework.Attributes.MethodAttributes;
 
 namespace StudentManagementLibrary.Tests
 {
-    [TestClassifierClass(Name = "Student repository", IsShared = true)]
+    [TestClassifierClass(Name = "Student repository", IsShared = false)]
     public class StudentRepositoryTests
     {
         private StudentRepository? _repository;
@@ -32,10 +32,11 @@ namespace StudentManagementLibrary.Tests
             _student = null;
         }
 
-        [TestClassifierMethod(priority: 1, name:"Student is added", timeout:1000)]
+        
+        [TestClassifierMethod(priority: 1, name:"Student is added")]
         public void AddStudent_IncreasesCount()
         {
-            Thread.Sleep(1100);
+            Thread.Sleep(6000);
             _repository?.AddStudent(new Student("Петров Петр", 22));
             Assert.AreEqual(2, _repository?.Students.Count);
         }

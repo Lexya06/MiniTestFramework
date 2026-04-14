@@ -6,14 +6,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TestRunner.Models;
+using TestRunner.ThreadPool;
 
 namespace TestRunner.Runner
 {
-    public class TestRunner
+    public class TestRunner : Runner
     {
         
-        // на уровне методов
-        // не учитываь определения методов с бефор ич
         
         
         private async Task RunTestAsync(ClassInfo classInfo, object? instance, TestInfo testInfo, TestExecutor executor, SemaphoreSlim semaphore, CancellationToken cancellationToken)
@@ -130,6 +129,9 @@ namespace TestRunner.Runner
 
         }
 
-
+        public long RunTests(List<ClassInfo> classInfos, TestExecutor executor)
+        {
+            return RunTestsSync(classInfos, executor);
+        }
     }
 }

@@ -4,6 +4,7 @@ using MiniTestFramework.Attributes.ClassAttributes;
 using MiniTestFramework.Attributes.MethodAttributes;
 using MiniTestFramework.Exceptions;
 using TestRunner.Models;
+using TestRunner.ThreadPool;
 using TestRunner.Utils;
 
 namespace TestRunner.Runner
@@ -16,34 +17,80 @@ namespace TestRunner.Runner
         {
             int minThreads = 1;
             int threads = 0;
-            Boolean flag = false;
+            bool flag = false;
             do
             {
-                Console.WriteLine("Enter max number of threads to parallel");
+                Console.WriteLine("\nEnter max number of threads to parallel:");
                 if (int.TryParse(Console.ReadLine(), out threads) && threads >= minThreads)
                 {
-                    minThreads = threads;
                     flag = true;
                 }
                 else
-                    Console.WriteLine("Number of threads is integer positive number greater zero. Please, try again");
-            }while(!flag);
+                    Console.WriteLine("Please enter a positive integer.");
+            } while (!flag);
             return threads;
         }
-        static async Task Main()
+
+        public static long RunXTimes(List<ClassInfo> classes, LoadSimulator simulator, TestLogger logger, int times)
         {
-            TestLogger logger = new TestLogger();
-            TestRunner runner = new TestRunner();
-            TestExecutor executor = new TestExecutor();
-            TestFinder finder = new TestFinder();
-            List<ClassInfo> classes = finder.FillClassInfoWithTestInfo(TestsFileUtil.GetPathToTestsAssembly());
-            int threads = GetMaxParallelThreads();
-            long asyncMillis = await runner.RunTestsAsync(classes, threads, executor);
-            logger.LogTestsInfo(classes, $"\nParallel: {asyncMillis} ms");
-            long syncMillis = runner.RunTestsSync(classes, executor);
-            logger.LogTestsInfo(classes, $"\nSynchronic: {syncMillis} ms");
+            long time;
+            logger.LogTestsInfo($"Начало {times} прогонов");
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            for (int i = 1; i <= times; i++)
+            {
+                time = simulator.RunUnevenLoadScenario(classes);
+
+                // Информация о запуске тестов в самом logTestsInfo
+                logger.LogTestsInfo(classes, $"Запуск  #{i}. Затрачено: {time} ms");
+            }
+
+            logger.LogTestsInfo($"Конец {times} прогонов");
+            stopwatch.Stop();
+            logger.LogTestsInfo($"Затраченное время = {stopwatch.ElapsedMilliseconds}");
+            return stopwatch.ElapsedMilliseconds;
 
         }
+
+        static void Main()
+        {
+            TestLogger testLogger = new TestLogger();
+            Logger logger = new Logger();
+            TestExecutor executor = new TestExecutor();
+            TestFinder finder = new TestFinder();
+
+            // Ввод данных пользователем
+            int maxThreads = GetMaxParallelThreads();
+
+            List<ClassInfo> classes = finder.FillClassInfoWithTestInfo(TestsFileUtil.GetPathToTestsAssembly());
+
+            int minThreads = 2;
+            TimeSpan idleTimeout = TimeSpan.FromSeconds(2);
+            TimeSpan hangTimeout = TimeSpan.FromSeconds(5);
+            TimeSpan taskTimeout = TimeSpan.FromSeconds(1);
+
+            long poolRunTime;
+            long syncRunTime;
+            int repeatCount = 5;
+
+            using (var pool = new DynamicThreadPool(minThreads, maxThreads, idleTimeout, hangTimeout, taskTimeout, logger))
+            {
+
+                DynamicPoolTestRunner poolRunner = new DynamicPoolTestRunner(pool);
+
+                LoadSimulator poolSimulator = new LoadSimulator(poolRunner, executor, logger);
+
+                poolRunTime = RunXTimes(classes, poolSimulator, testLogger, repeatCount);
+               
+            }
+            
+            TestRunner testRunner = new TestRunner();
+            LoadSimulator syncSimulator = new LoadSimulator(testRunner, executor, logger);
+            syncRunTime = RunXTimes(classes, syncSimulator, testLogger, repeatCount);
+            logger.LogEvent($"Thread Pool эффективнее синхронного запуска в {(double)syncRunTime / poolRunTime} раз");
+            Console.ReadKey();
+        }
+
+        
     }
-    
 }

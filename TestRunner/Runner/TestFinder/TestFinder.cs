@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using MiniTestFramework.Attributes.ClassAttributes;
 using MiniTestFramework.Attributes.MethodAttributes;
 using TestRunner.Models;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TestRunner.Runner
 {

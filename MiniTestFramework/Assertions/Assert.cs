@@ -21,6 +21,7 @@ namespace MiniTestFramework.Assertions
                 throw new TestAssertionException("Condition is true");
         }
 
+        
         public static void AreEqual<T>(T expected, T actual)
         {
             if (!Equals(expected, actual))
@@ -29,6 +30,7 @@ namespace MiniTestFramework.Assertions
                     expected?.ToString(),
                     actual?.ToString());
         }
+
 
         public static void AreNotEqual<T>(T notExpected, T actual)
         {

@@ -14,9 +14,9 @@ namespace TestRunner.Runner
         private void ExecuteTestMethod(object? instance, MethodInfo method, object[]? parametres, CancellationToken cancellToken)
         {
             cancellToken.ThrowIfCancellationRequested();
-            Boolean isAsync = method.ReturnType.IsAssignableFrom(typeof(Task))
-                || (method.ReturnType.IsGenericType && (method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>)
-                                                      || method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)));
+            bool isAsync = method.ReturnType.IsAssignableFrom(typeof(Task))
+                || method.ReturnType.IsGenericType && (method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>)
+                                                      || method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
             Task? taskToWait = null;
 
             if (isAsync)
