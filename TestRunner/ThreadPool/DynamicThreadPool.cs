@@ -14,6 +14,15 @@ namespace TestRunner.ThreadPool
 {
     public class DynamicThreadPool : IDisposable
     {
+        public event EventHandler<ThreadEventArgs>? ThreadStarted;
+        public event EventHandler<ThreadEventArgs>? ThreadStopped;
+        public event EventHandler<TaskEventArgs>? TaskQueuedEvent;
+        public event EventHandler<TaskEventArgs>? TaskExecuting;
+        public event EventHandler<TaskEventArgs>? TaskCompleted;
+        public event EventHandler<ScaleEventArgs>? ScaleUp;
+        public event EventHandler<ScaleEventArgs>? ScaleDown;
+        public event EventHandler<ThreadEventArgs>? ThreadHung;
+
         private readonly int _minThreads;
         private readonly int _maxThreads;
         private readonly TimeSpan _idleTimeout;
@@ -66,6 +75,8 @@ namespace TestRunner.ThreadPool
             lock (_lock)
             {
                 _logger.LogEvent($"Scale UP: поток {thread.ManagedThreadId}, всего потоков: {_workers.Count}, ids: [{string.Join(", ", _workers.ConvertAll(t => t.ManagedThreadId))}]");
+                ScaleUp?.Invoke(this, new ScaleEventArgs(thread.ManagedThreadId, _workers.Count, "task_queue_growing"));
+                ThreadStarted?.Invoke(this, new ThreadEventArgs(thread.ManagedThreadId, _workers.Count));
             }
         }
 
@@ -80,6 +91,7 @@ namespace TestRunner.ThreadPool
                 _waitingTasks[id] = DateTime.Now;
 
                 _logger.LogEvent($"Task queued. Count: {_taskQueue.Count}");
+                TaskQueuedEvent?.Invoke(this, new TaskEventArgs(id, _taskQueue.Count));
 
                 Monitor.PulseAll(_lock);
 
@@ -108,6 +120,8 @@ namespace TestRunner.ThreadPool
                         {
                             _workers.Remove(Thread.CurrentThread);
                             _logger.LogEvent($"Scale DOWN: поток {Thread.CurrentThread.ManagedThreadId}, всего потоков: {_workers.Count}, ids: [{string.Join(", ", _workers.ConvertAll(t => t.ManagedThreadId))}]");
+                            ScaleDown?.Invoke(this, new ScaleEventArgs(Thread.CurrentThread.ManagedThreadId, _workers.Count, "idle_timeout"));
+                            ThreadStopped?.Invoke(this, new ThreadEventArgs(Thread.CurrentThread.ManagedThreadId, _workers.Count));
                             return;
                         }
                     }
@@ -115,6 +129,7 @@ namespace TestRunner.ThreadPool
                     work = _taskQueue.Dequeue();
                     _waitingTasks.Remove(work.id);
                     _executingThreads[Thread.CurrentThread] = DateTime.Now;
+                    TaskExecuting?.Invoke(this, new TaskEventArgs(work.id, _taskQueue.Count));
                 }
 
                 try
@@ -130,6 +145,7 @@ namespace TestRunner.ThreadPool
                     lock (_lock)
                     {
                         _executingThreads.Remove(Thread.CurrentThread);
+                        TaskCompleted?.Invoke(this, new TaskEventArgs(work.id, _taskQueue.Count));
 
                         if (_workers.Count < _minThreads)
                             StartNewThread();
@@ -142,8 +158,6 @@ namespace TestRunner.ThreadPool
         {
             while (!_isDisposed)
             {
-                
-
                 lock (_lock)
                 {
                     var now = DateTime.Now;
@@ -154,8 +168,10 @@ namespace TestRunner.ThreadPool
                         if ((now - kvp.Value) > _hangTimeout)
                         {
                             _logger.LogError($"Thread {kvp.Key.ManagedThreadId} is hung. Всего потоков: {_workers.Count}, ids: [{string.Join(", ", _workers.ConvertAll(t => t.ManagedThreadId))}]");
+                            ThreadHung?.Invoke(this, new ThreadEventArgs(kvp.Key.ManagedThreadId, _workers.Count));
 
                             _executingThreads.Remove(kvp.Key);
+                            _workers.Remove(kvp.Key);
 
                             if (_workers.Count < _maxThreads)
                                 StartNewThread();

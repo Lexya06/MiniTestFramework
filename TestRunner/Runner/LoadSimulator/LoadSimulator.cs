@@ -35,7 +35,7 @@ namespace TestRunner.Runner
             }
 
 
-            // 1. Единичные подачи
+            // Единичные подачи
             _logger.LogEvent("> Сценарий 1: Единичные подачи");
             for (int i = 0; i < availableClasses.Count; i++)
             {
@@ -44,16 +44,14 @@ namespace TestRunner.Runner
                 Thread.Sleep(100);
             }
 
-            // 2. Интервал бездействия
+            // Интервал бездействия
             _logger.LogEvent("> Сценарий 2: Интервал бездействия");
             Thread.Sleep(200);
 
-            // 3. Пиковая нагрузка
+            // Пиковая нагрузка
             _logger.LogEvent("> Сценарий 3: Пиковая нагрузка (всплеск задач)");
            
             _runner.RunTests(availableClasses, _executor);
-            
-
 
             _logger.LogEvent("--- СИМУЛЯЦИЯ ЗАВЕРШЕНА ---");
             stopwatch.Stop();

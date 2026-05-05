@@ -9,7 +9,7 @@ namespace TestRunner.Models
 {
     public class BaseInfo
     {
-        public BaseClassifierAttribute ClassifierAttribute { protected get; set; }
+        public BaseClassifierAttribute ClassifierAttribute { get; set; }
         public BaseInfo(Type type, BaseClassifierAttribute baseClassifierAttribute)
         {
             this.ClassifierAttribute = baseClassifierAttribute;

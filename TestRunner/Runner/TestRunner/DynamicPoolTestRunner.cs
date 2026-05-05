@@ -69,7 +69,7 @@ namespace TestRunner.Runner
                                     }
                                 });
                             }
-                            // Ждём, пока все тесты не вызовут Release()
+                           
                             for (int i = 0; i < totalTests; i++)
                             {
                                 semaphore.WaitOne();

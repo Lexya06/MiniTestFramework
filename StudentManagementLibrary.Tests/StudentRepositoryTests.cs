@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -32,7 +32,7 @@ namespace StudentManagementLibrary.Tests
             _student = null;
         }
 
-        
+
         [TestClassifierMethod(priority: 1, name:"Student is added")]
         public void AddStudent_IncreasesCount()
         {
@@ -42,7 +42,7 @@ namespace StudentManagementLibrary.Tests
         }
 
         [TestClassifierMethod(priority: 1, name: "Student is removed", timeout: 1000)]
-        
+
         public void RemoveStudent_Removes()
         {
             Thread.Sleep(500);
@@ -73,7 +73,7 @@ namespace StudentManagementLibrary.Tests
         {
             Thread.Sleep(500);
             _student?.UpdateAverageGrade(grade);
-       
+
             Assert.Greater(_student?.AverageGrade, grade - 1);
             Assert.Less(_student?.AverageGrade, grade + 1);
         }
@@ -109,6 +109,54 @@ namespace StudentManagementLibrary.Tests
             Thread.Sleep(500);
             Assert.Throws<ArgumentException>(() =>
                 new Student(name, 18));
+        }
+
+        // ========== ДЕМОНСТРАЦИЯ TestDataSourceAttribute (yield return) ==========
+
+        private static IEnumerable<object[]> InvalidAges()
+        {
+            yield return new object[] { 10 };
+            yield return new object[] { 15 };
+            yield return new object[] { 101 };
+            yield return new object[] { -1 };
+        }
+
+        [TestClassifierMethod(priority: 1, name: "Student invalid ages via yield", timeout: 500)]
+        [TestDataSource(nameof(InvalidAges))]
+        public void Student_InvalidAgeViaYield_Throws(int invalidAge)
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new Student("Петров Петр", invalidAge));
+        }
+
+        private static IEnumerable<object[]> InvalidNames()
+        {
+            yield return new object[] { "" };
+            yield return new object[] { "   " };
+            yield return new object[] { null! };
+        }
+
+        [TestClassifierMethod(priority: 1, name: "Student invalid names via yield", timeout: 500)]
+        [TestDataSource(nameof(InvalidNames))]
+        public void Student_InvalidNameViaYield_Throws(string invalidName)
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new Student(invalidName, 20));
+        }
+
+        private static IEnumerable<object[]> InvalidGrades()
+        {
+            yield return new object[] { -0.1 };
+            yield return new object[] { 10.1 };
+            yield return new object[] { 100.0 };
+        }
+
+        [TestClassifierMethod(priority: 1, name: "Student invalid grades via yield", timeout: 500)]
+        [TestDataSource(nameof(InvalidGrades))]
+        public void Student_InvalidGradeViaYield_Throws(double invalidGrade)
+        {
+            Assert.Throws<ArgumentException>(() =>
+                _student?.UpdateAverageGrade(invalidGrade));
         }
     }
 }

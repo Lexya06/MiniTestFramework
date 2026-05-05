@@ -12,7 +12,7 @@ namespace TestRunner.Runner
 {
     public class TestFinder
     {
-        List<TestInfo> FindTests(Type type, List<MethodInfo> beforeEach, List<MethodInfo> afterEach)
+        private List<TestInfo> FindTests(Type type, List<MethodInfo> beforeEach, List<MethodInfo> afterEach)
         {
             List<TestInfo> testInfos = new List<TestInfo>();
             foreach (var method in type.GetMethods())
@@ -20,6 +20,7 @@ namespace TestRunner.Runner
                 var testClassifier = method.GetCustomAttribute<TestClassifierMethodAttribute>();
                 if (testClassifier != null)
                 {
+                    // TestDataMethodAttribute (inline parameters)
                     var testData = method.GetCustomAttributes<TestDataMethodAttribute>().ToList();
                     if (testData.Any())
                     {
@@ -34,6 +35,32 @@ namespace TestRunner.Runner
                                 afterEach
                                 )
                             );
+                        }
+                    }
+                    // TestDataSourceAttribute (yield return data source)
+                    else if (method.GetCustomAttribute<TestDataSourceAttribute>() is TestDataSourceAttribute sourceAttr)
+                    {
+                        var sourceMethod = type.GetMethod(sourceAttr.MethodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                        if (sourceMethod != null)
+                        {
+                            object? instance = sourceMethod.IsStatic ? null : Activator.CreateInstance(type);
+                            var dataEnumerable = sourceMethod.Invoke(instance, null) as System.Collections.IEnumerable;
+                            if (dataEnumerable != null)
+                            {
+                                foreach (var item in dataEnumerable)
+                                {
+                                    var parameters = item as object[];
+                                    var dataAttr = new TestDataMethodAttribute(parameters ?? Array.Empty<object>());
+                                    testInfos.Add(new TestInfo(
+                                        type,
+                                        testClassifier,
+                                        method,
+                                        dataAttr,
+                                        beforeEach,
+                                        afterEach
+                                    ));
+                                }
+                            }
                         }
                     }
                     else
@@ -51,7 +78,6 @@ namespace TestRunner.Runner
 
                 }
             }
-            testInfos.OrderBy(t => t.getPriority());
             return testInfos;
         }
 
@@ -79,6 +105,15 @@ namespace TestRunner.Runner
             }
             classInfos.OrderBy(c => c.getPriority());
             return classInfos;
+        }
+
+        public void ApplyFilter(List<ClassInfo> classInfos, Predicate<TestInfo> testFilter)
+        {
+            foreach (var classInfo in classInfos)
+            {
+                classInfo.TestInfos.RemoveAll(t => !testFilter(t));
+            }
+            classInfos.RemoveAll(c => c.TestInfos.Count == 0);
         }
     }
 }
